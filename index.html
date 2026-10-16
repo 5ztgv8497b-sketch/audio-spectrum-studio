@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SonicPulse Studio — Reproductor & Analizador de Espectro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-ambient">
+    <div class="orb orb-1" id="ambientOrb1"></div>
+    <div class="orb orb-2" id="ambientOrb2"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">
+        <span class="bar b1"></span>
+        <span class="bar b2"></span>
+        <span class="bar b3"></span>
+        <span class="bar b4"></span>
+      </div>
+      <div>
+        <h1>SonicPulse <span class="badge-pro">STUDIO</span></h1>
+        <p class="subtitle">Analizador de Espectro Acústico &amp; Centro de Datos en Tiempo Real</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="demoTrackBtn" class="btn-secondary" title="Generar pista sintetizada de prueba">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="16" r="3"></circle>
+        </svg>
+        <span>Pista Demo Synth</span>
+      </button>
+
+      <label for="audioFileInput" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Cargar Archivos de Audio</span>
+      </label>
+      <input type="file" id="audioFileInput" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm" multiple hidden />
+    </div>
+  </header>
+
+  <!-- Main 3-Column Dashboard -->
+  <main class="dashboard">
+    <!-- Left Widget: Weather (Clima) -->
+    <aside class="widget-panel weather-panel" aria-label="Widget del Clima">
+      <div class="widget-header">
+        <div class="widget-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          </svg>
+          <h2>Clima en Vivo</h2>
+        </div>
+        <div class="widget-controls">
+          <span class="api-status online" id="weatherStatusDot" title="Conectado a Open-Meteo API">LIVE</span>
+          <button id="locateMeBtn" class="icon-btn" title="Usar mi ubicación actual">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+            </svg>
+          </button>
+          <button id="refreshWeatherBtn" class="icon-btn" title="Actualizar clima">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+              <path d="M16 16h5v5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- City Search -->
+      <form id="citySearchForm" class="search-bar">
+        <input type="text" id="citySearchInput" placeholder="Buscar ciudad (ej. Madrid, CDMX)..." autocomplete="off" />
+        <button type="submit" title="Buscar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </form>
+
+      <div class="quick-cities">
+        <button type="button" class="city-chip active" data-lat="19.4326" data-lon="-99.1332" data-name="Ciudad de México, MX">CDMX</button>
+        <button type="button" class="city-chip" data-lat="40.4168" data-lon="-3.7038" data-name="Madrid, ES">Madrid</button>
+        <button type="button" class="city-chip" data-lat="-34.6037" data-lon="-58.3816" data-name="Buenos Aires, AR">BsAs</button>
+        <button type="button" class="city-chip" data-lat="4.7110" data-lon="-74.0721" data-name="Bogotá, CO">Bogotá</button>
+        <button type="button" class="city-chip" data-lat="40.7128" data-lon="-74.0060" data-name="New York, US">NYC</button>
+      </div>
+
+      <div class="weather-current" id="weatherCurrent">
+        <div class="weather-main-row">
+          <div>
+            <div class="weather-city" id="weatherCityName">Ciudad de México, MX</div>
+            <div class="weather-desc" id="weatherConditionText">Cargando clima...</div>
+          </div>
+          <div class="weather-icon-big" id="weatherIconBig">⛅</div>
+        </div>
+        <div class="weather-temp-row">
+          <span class="weather-temp" id="weatherTemp">--°C</span>
+          <div class="weather-hi-lo">
+            <span id="weatherMax">Máx: --°</span>
+            <span id="weatherMin">Mín: --°</span>
+          </div>
+        </div>
+
+        <div class="weather-metrics-grid">
+          <div class="w-metric">
+            <span class="w-label">Sensación</span>
+            <span class="w-value" id="weatherFeels">--°C</span>
+          </div>
+          <div class="w-metric">
+            <span class="w-label">Humedad</span>
+            <span class="w-value" id="weatherHumidity">--%</span>
+          </div>
+          <div class="w-metric">
+            <span class="w-label">Viento</span>
+            <span class="w-value" id="weatherWind">-- km/h</span>
+          </div>
+          <div class="w-metric">
+            <span class="w-label">Índice UV</span>
+            <span class="w-value" id="weatherUV">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="weather-forecast-section">
+        <h3 class="section-sub">Pronóstico Próximos Días</h3>
+        <div class="forecast-list" id="weatherForecastList">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="widget-footer">
+        <span>Fuente: Open-Meteo API (Sin llave)</span>
+        <span id="weatherUpdatedTime">--:--</span>
+      </div>
+    </aside>
+
+    <!-- Center Stage: Audio Spectrum + Waveform + Controls -->
+    <section class="center-stage" aria-label="Visualizador de Espectro y Controles de Audio">
+      <!-- Visualizer Card -->
+      <div class="visualizer-container" id="dropZone">
+        <!-- Top Overlay Bar inside Visualizer -->
+        <div class="visualizer-hud-top">
+          <div class="track-info-pill">
+            <span class="status-led" id="playbackLed"></span>
+            <div class="track-meta">
+              <span class="track-title" id="currentTrackTitle">Arrastra un archivo de audio o pulsa "Cargar Archivos"</span>
+              <span class="track-specs" id="currentTrackSpecs">Web Audio API • FFT 2048 • 60 FPS</span>
+            </div>
+          </div>
+
+          <div class="viz-mode-selector" role="group" aria-label="Estilo de barras de nivel">
+            <button type="button" class="viz-btn active" data-mode="combined" title="Barras de Nivel Clásicas con Picos">
+              Barras Clásicas
+            </button>
+            <button type="button" class="viz-btn" data-mode="mirror" title="Barras Simétricas Espejo">
+              Espejo Dual
+            </button>
+            <button type="button" class="viz-btn" data-mode="led" title="Barras LED Segmentadas de Estudio">
+              LED Studio
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Telemetry Badges -->
+        <div class="audio-telemetry">
+          <div class="telemetry-item">
+            <span class="t-label">RMS NIVEL</span>
+            <span class="t-val" id="rmsDbVal">-∞ dB</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="t-label">PICO FREQ</span>
+            <span class="t-val" id="peakFreqVal">0 Hz</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="t-label">GRAVES</span>
+            <span class="t-val" id="bassEnergyVal">0%</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="t-label">AGUDOS</span>
+            <span class="t-val" id="trebleEnergyVal">0%</span>
+          </div>
+        </div>
+
+        <!-- 3-Panel Vertical Stack of Rectangular Visualizers -->
+        <div class="viz-stack" id="vizStack">
+          <!-- Panel 1: Espectro completo de la onda (Pre-analizado al cargar archivo + cursor de recorrido) -->
+          <div class="viz-panel-box" id="waveformPanelBox">
+            <div class="viz-panel-header">
+              <span class="legend-tag">
+                <i class="dot dot-wave"></i>
+                <strong>1. Espectro Completo de la Onda</strong>
+                <small class="panel-hint">(Analizado al cargar • Haz clic o arrastra para saltar)</small>
+              </span>
+              <div class="panel-right-meta">
+                <span class="analysis-badge" id="waveformAnalysisBadge">Listo</span>
+                <span class="cursor-time-pill" id="waveformCursorTime">00:00 / 00:00</span>
+              </div>
+            </div>
+            <div class="viz-canvas-slot waveform-slot" id="waveformSeekSlot" title="Haz clic o arrastra para recorrer la canción">
+              <canvas id="fullWaveformCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Panel 2: Barras de niveles de frecuencia en vivo -->
+          <div class="viz-panel-box">
+            <div class="viz-panel-header">
+              <span class="legend-tag">
+                <i class="dot dot-bars"></i>
+                <strong>2. Barras de Niveles de Frecuencia en Vivo</strong>
+              </span>
+              <div class="freq-scale-labels">
+                <span>20 Hz</span>
+                <span>100 Hz</span>
+                <span>500 Hz</span>
+                <span>2 kHz</span>
+                <span>8 kHz</span>
+                <span>20 kHz</span>
+              </div>
+            </div>
+            <div class="viz-canvas-slot bars-slot">
+              <canvas id="levelBarsCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Panel 3: Onda acústica instantánea -->
+          <div class="viz-panel-box">
+            <div class="viz-panel-header">
+              <span class="legend-tag">
+                <i class="dot dot-osc"></i>
+                <strong>3. Onda Acústica Instantánea (Osciloscopio en Tiempo Real)</strong>
+              </span>
+              <span class="panel-sub-meta" id="oscMetaLabel">Dominio del Tiempo • 60 FPS</span>
+            </div>
+            <div class="viz-canvas-slot osc-slot">
+              <canvas id="oscilloscopeCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Drag & Drop Overlay -->
+          <div class="drop-overlay" id="dropOverlay">
+            <div class="drop-box">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+              </svg>
+              <p>Suelta tus archivos de audio aquí</p>
+              <span>Se analizará el espectro completo al instante (MP3, WAV, FLAC, OGG, M4A)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Transport & Controls Bar -->
+      <div class="transport-card">
+        <!-- Timeline Progress Bar -->
+        <div class="timeline-row">
+          <span class="time-stamp" id="currentTimeLabel">00:00</span>
+          <div class="progress-bar-wrap" id="progressBarWrap" title="Haz clic para cambiar posición">
+            <input type="range" id="seekSlider" min="0" max="1000" value="0" step="1" aria-label="Posición de reproducción" />
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <span class="time-stamp" id="totalTimeLabel">00:00</span>
+        </div>
+
+        <!-- Main Transport Controls -->
+        <div class="controls-row">
+          <!-- Left: Volume & Speed -->
+          <div class="controls-left">
+            <button type="button" id="muteBtn" class="icon-btn" title="Silenciar / Activar sonido">
+              <svg id="volIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+            </button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.85" class="volume-slider" title="Volumen" />
+            <span class="vol-pct" id="volumePct">85%</span>
+          </div>
+
+          <!-- Center: Rewind, Prev, Play/Pause, Stop, Next, Forward -->
+          <div class="controls-center">
+            <button type="button" id="prevTrackBtn" class="ctrl-btn" title="Pista anterior">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                <line x1="5" y1="19" x2="5" y2="5"></line>
+              </svg>
+            </button>
+
+            <button type="button" id="rewindBtn" class="ctrl-btn skip-btn" title="Atrasar 10 segundos (-10s)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 17l-5-5 5-5"></path>
+                <path d="M18 17l-5-5 5-5"></path>
+              </svg>
+              <span>-10s</span>
+            </button>
+
+            <button type="button" id="playPauseBtn" class="ctrl-btn play-btn" title="Reproducir / Pausar (Espacio)">
+              <svg id="playIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="6 4 20 12 6 20 6 4"></polygon>
+              </svg>
+              <svg id="pauseIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" class="hidden">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+
+            <button type="button" id="stopBtn" class="ctrl-btn stop-btn" title="Parar y reiniciar a 00:00">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+              </svg>
+            </button>
+
+            <button type="button" id="forwardBtn" class="ctrl-btn skip-btn" title="Avanzar 10 segundos (+10s)">
+              <span>+10s</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 17l5-5-5-5"></path>
+                <path d="M6 17l5-5-5-5"></path>
+              </svg>
+            </button>
+
+            <button type="button" id="nextTrackBtn" class="ctrl-btn" title="Siguiente pista">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Right: Speed & Loop -->
+          <div class="controls-right">
+            <select id="speedSelect" class="speed-select" title="Velocidad de reproducción">
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1.0x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2.0x</option>
+            </select>
+            <button type="button" id="loopBtn" class="icon-btn" title="Repetir pista actual">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Playlist / Loaded Tracks Strip -->
+        <div class="playlist-drawer">
+          <div class="playlist-header">
+            <span>Lista de Reproducción (<strong id="playlistCount">0</strong> pistas)</span>
+            <button type="button" id="clearPlaylistBtn" class="text-btn">Limpiar lista</button>
+          </div>
+          <ul class="playlist-items" id="playlistItems">
+            <li class="playlist-empty">No hay archivos cargados aún. Carga tus archivos MP3/WAV o prueba la Pista Demo Synth.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Widget: Stock Market & Crypto & Forex (Bolsa y Mercados) -->
+    <aside class="widget-panel market-panel" aria-label="Widget de Bolsa y Mercados">
+      <div class="widget-header">
+        <div class="widget-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+          <h2>Bolsa &amp; Mercados</h2>
+        </div>
+        <div class="widget-controls">
+          <span class="api-status online" id="marketStatusDot" title="Conectado a APIs Financieras Gratuitas">LIVE</span>
+          <button id="refreshMarketBtn" class="icon-btn" title="Actualizar cotizaciones">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+              <path d="M16 16h5v5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Market Category Tabs -->
+      <div class="market-tabs" role="tablist">
+        <button type="button" class="m-tab active" data-tab="all">Todos</button>
+        <button type="button" class="m-tab" data-tab="stocks">Acciones / Índices</button>
+        <button type="button" class="m-tab" data-tab="crypto">Cripto</button>
+        <button type="button" class="m-tab" data-tab="forex">Divisas</button>
+      </div>
+
+      <!-- Featured Sparkline Card -->
+      <div class="market-featured" id="marketFeaturedCard">
+        <div class="mf-top">
+          <div>
+            <span class="mf-symbol" id="featuredSymbol">BTC/USD</span>
+            <span class="mf-name" id="featuredName">Bitcoin • Mercado Global</span>
+          </div>
+          <div class="mf-price-box">
+            <span class="mf-price" id="featuredPrice">$--</span>
+            <span class="mf-change up" id="featuredChange">+0.00%</span>
+          </div>
+        </div>
+        <canvas id="marketSparkline" width="280" height="58"></canvas>
+      </div>
+
+      <!-- Ticker List -->
+      <div class="market-list" id="marketList">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="widget-footer">
+        <span>APIs: CoinGecko • Frankfurter • Yahoo</span>
+        <span id="marketUpdatedTime">--:--</span>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
